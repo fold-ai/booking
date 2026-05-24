@@ -149,6 +149,7 @@ export const fromBooking = (r) => ({
   end: r.end_at,
   address: r.address ?? '',
   price: Number(r.price ?? 0),
+  tip: Number(r.tip ?? 0),
   notes: r.notes ?? '',
   status: r.status ?? 'scheduled',
   createdAt: r.created_at,
@@ -163,6 +164,7 @@ export const toBooking = (b, businessId) => ({
   end_at: b.end,
   address: b.address ?? null,
   price: b.price ?? 0,
+  tip: b.tip ?? 0,
   notes: b.notes ?? null,
   status: b.status ?? 'scheduled',
 })

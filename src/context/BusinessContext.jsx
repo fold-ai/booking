@@ -310,11 +310,21 @@ export function BusinessProvider({ children }) {
     await refresh()
   }
 
+  // Financial visibility — only the owner or a worker flagged is_manager
+  // may see revenue / tips / profit. Regular crew cannot.
+  const isOwner = !!user && state.business?.ownerId === user.id
+  const myWorker = state.workers.find((w) => w.userId === user?.id)
+  const isManager = isOwner || !!myWorker?.isManager
+  const canSeeMoney = isManager
+
   const api = useMemo(() => ({
     ...state,
     loading,
     error,
     refresh,
+    isOwner,
+    isManager,
+    canSeeMoney,
     createBusinessForUser,
     updateBusiness,
     addWorker, updateWorker, removeWorker,
@@ -323,7 +333,7 @@ export function BusinessProvider({ children }) {
     addBooking, updateBooking, removeBooking,
     addOffer, updateOffer, removeOffer,
     businessTypes: BUSINESS_TYPES,
-  }), [state, loading, error, refresh])
+  }), [state, loading, error, refresh, isOwner, isManager, canSeeMoney])
 
   return <BusinessContext.Provider value={api}>{children}</BusinessContext.Provider>
 }

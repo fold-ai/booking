@@ -5,7 +5,7 @@ import StatusPill from './StatusPill.jsx'
 import { useBusiness } from '../context/BusinessContext.jsx'
 
 export default function BookingCard({ booking, onClick }) {
-  const { clients, workers, services } = useBusiness()
+  const { clients, workers, services, canSeeMoney } = useBusiness()
   const client = clients.find((c) => c.id === booking.clientId)
   const service = services.find((s) => s.id === booking.serviceId)
   const assigned = workers.filter((w) => booking.workerIds?.includes(w.id))
@@ -33,7 +33,11 @@ export default function BookingCard({ booking, onClick }) {
           </div>
           <div className="mt-3 flex items-center justify-between">
             <WorkerStack workers={assigned} />
-            <span className="text-sm font-semibold text-ink-700">{fmtMoney(booking.price)}</span>
+            {canSeeMoney && (
+              <span className="text-sm font-semibold text-ink-700">
+                {fmtMoney((booking.price || 0) + (booking.tip || 0))}
+              </span>
+            )}
           </div>
         </div>
       </div>

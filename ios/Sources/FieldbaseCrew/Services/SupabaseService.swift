@@ -154,6 +154,7 @@ struct SupabaseService {
   func updateBookingDetails(
     id: UUID,
     price: Double,
+    tip: Double,
     address: String?,
     notes: String?,
     status: BookingStatus,
@@ -161,6 +162,7 @@ struct SupabaseService {
   ) async throws {
     struct Patch: Encodable {
       let price: Double
+      let tip: Double
       let address: String?
       let notes: String?
       let status: String
@@ -170,6 +172,7 @@ struct SupabaseService {
       .from("bookings")
       .update(Patch(
         price: price,
+        tip: tip,
         address: address,
         notes: notes,
         status: status.rawValue,

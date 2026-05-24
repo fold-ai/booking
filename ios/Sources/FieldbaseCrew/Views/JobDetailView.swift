@@ -17,6 +17,7 @@ struct JobDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var notes: String = ""
   @State private var priceText: String = ""
+  @State private var tipText: String = ""
   @State private var addressText: String = ""
   @State private var savingDetails = false
   @State private var confirmDelete = false
@@ -71,6 +72,7 @@ struct JobDetailView: View {
     .onAppear {
       notes = booking.notes ?? ""
       priceText = String(format: "%.2f", booking.price)
+      tipText = String(format: "%.2f", booking.tip)
       addressText = booking.address
     }
     .alert("Delete booking?", isPresented: $confirmDelete) {
@@ -130,12 +132,12 @@ struct JobDetailView: View {
       if isManager {
         editableInfoCard
       } else {
+        // Worker view — no money shown.
         VStack(alignment: .leading, spacing: 12) {
           row(label: "Address", value: booking.address.isEmpty ? "—" : booking.address)
           if let phone = client?.phone {
             row(label: "Phone", value: phone)
           }
-          row(label: "Price", value: String(format: "$%.2f", booking.price))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,6 +165,23 @@ struct JobDetailView: View {
         .background(Theme.ink50)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         Text("Adjust for custom quotes, discounts, or extra work.")
+          .font(.caption2).foregroundStyle(Theme.ink400)
+      }
+
+      // Tip
+      VStack(alignment: .leading, spacing: 6) {
+        Text("TIP").font(.caption2).tracking(1).foregroundStyle(Theme.ink400)
+        HStack(spacing: 6) {
+          Text("$").foregroundStyle(Theme.ink400)
+          TextField("0.00", text: $tipText)
+            .keyboardType(.decimalPad)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(Theme.ink800)
+        }
+        .padding(12)
+        .background(Theme.ink50)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        Text("Counts toward earnings.")
           .font(.caption2).foregroundStyle(Theme.ink400)
       }
 
@@ -204,17 +223,20 @@ struct JobDetailView: View {
 
   private var hasDetailChanges: Bool {
     let priceChanged = (Double(priceText) ?? booking.price) != booking.price
+    let tipChanged = (Double(tipText) ?? booking.tip) != booking.tip
     let addressChanged = addressText != booking.address
-    return priceChanged || addressChanged
+    return priceChanged || tipChanged || addressChanged
   }
 
   private func saveDetails() async {
     savingDetails = true
     defer { savingDetails = false }
     let newPrice = Double(priceText) ?? booking.price
+    let newTip = Double(tipText) ?? booking.tip
     _ = await state.updateBookingDetails(
       item,
       price: newPrice,
+      tip: newTip,
       address: addressText.isEmpty ? nil : addressText,
       notes: notes,
       status: booking.status,

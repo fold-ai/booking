@@ -160,6 +160,7 @@ final class AppState {
   func updateBookingDetails(
     _ bws: BookingWithService,
     price: Double,
+    tip: Double,
     address: String?,
     notes: String?,
     status: BookingStatus,
@@ -169,6 +170,7 @@ final class AppState {
       try await data.updateBookingDetails(
         id: bws.booking.id,
         price: price,
+        tip: tip,
         address: address,
         notes: notes,
         status: status,

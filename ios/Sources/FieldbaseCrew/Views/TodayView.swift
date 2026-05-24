@@ -57,6 +57,7 @@ struct TodayView: View {
           Text("\(business.name) — \(state.bookings.count) job\(state.bookings.count == 1 ? "" : "s") today.")
             .foregroundStyle(Theme.ink400)
         }
+        earningsLine
       } else if let worker = state.role?.worker {
         Text("Hey \(worker.name.components(separatedBy: " ").first ?? worker.name) — \(state.bookings.count) job\(state.bookings.count == 1 ? "" : "s") on you.")
           .foregroundStyle(Theme.ink400)
@@ -75,6 +76,24 @@ struct TodayView: View {
     .frame(maxWidth: .infinity).padding(.vertical, 60)
     .background(.white).clipShape(RoundedRectangle(cornerRadius: 20))
   }
+
+  // Managers only — today's earnings (revenue + tips).
+  private var earningsLine: some View {
+    let revenue = state.bookings.reduce(0) { $0 + $1.booking.price }
+    let tips = state.bookings.reduce(0) { $0 + $1.booking.tip }
+    let earnings = revenue + tips
+    return HStack(spacing: 8) {
+      Image(systemName: "dollarsign.circle.fill").foregroundStyle(Theme.amberDeep)
+      Text(money(earnings)).fontWeight(.semibold).foregroundStyle(Theme.ink800)
+      if tips > 0 {
+        Text("incl. \(money(tips)) tips").font(.caption).foregroundStyle(Theme.ink400)
+      }
+      Spacer()
+    }
+    .padding(.top, 4)
+  }
+
+  private func money(_ v: Double) -> String { String(format: "$%.0f", v) }
 
   private var todayLabel: String {
     let f = DateFormatter(); f.dateFormat = "EEEE, MMM d"

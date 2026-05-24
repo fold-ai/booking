@@ -95,10 +95,14 @@ create table if not exists public.bookings (
   end_at       timestamptz not null,
   address      text,
   price        numeric not null default 0,
+  tip          numeric not null default 0,
   notes        text,
   status       text not null default 'scheduled',
   created_at   timestamptz not null default now()
 );
+
+-- Ensure tip exists on pre-existing installs (idempotent).
+alter table public.bookings add column if not exists tip numeric not null default 0;
 
 create index if not exists bookings_business_start_idx on public.bookings(business_id, start_at);
 

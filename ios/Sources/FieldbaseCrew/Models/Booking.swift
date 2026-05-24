@@ -25,6 +25,7 @@ struct Booking: Identifiable, Codable, Hashable {
   let end: Date
   let address: String
   let price: Double
+  let tip: Double
   let notes: String?
   let status: BookingStatus
 
@@ -37,6 +38,7 @@ struct Booking: Identifiable, Codable, Hashable {
     case end = "end_at"
     case address
     case price
+    case tip
     case notes
     case status
   }
@@ -53,6 +55,7 @@ struct Booking: Identifiable, Codable, Hashable {
     end       = try c.decode(Date.self,   forKey: .end)
     address   = (try? c.decode(String.self, forKey: .address)) ?? ""
     price     = (try? c.decode(Double.self, forKey: .price)) ?? 0
+    tip       = (try? c.decode(Double.self, forKey: .tip)) ?? 0
     notes     = try c.decodeIfPresent(String.self, forKey: .notes)
     status    = (try? c.decode(BookingStatus.self, forKey: .status)) ?? .scheduled
   }

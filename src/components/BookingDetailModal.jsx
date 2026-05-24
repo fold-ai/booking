@@ -8,13 +8,14 @@ import { fmtDateTime } from '../lib/format.js'
 const STATUSES = ['scheduled', 'in_progress', 'completed', 'cancelled']
 
 export default function BookingDetailModal({ booking, onClose }) {
-  const { clients, services, workers, updateBooking, removeBooking } = useBusiness()
+  const { clients, services, workers, updateBooking, removeBooking, canSeeMoney } = useBusiness()
   const client = clients.find((c) => c.id === booking.clientId)
   const service = services.find((s) => s.id === booking.serviceId)
 
   // Усі редаговані поля — локальний state, зберігаємо одним Save
   const [notes, setNotes] = useState(booking.notes || '')
   const [price, setPrice] = useState(String(booking.price ?? 0))
+  const [tip, setTip] = useState(String(booking.tip ?? 0))
   const [address, setAddress] = useState(booking.address || '')
   const [workerIds, setWorkerIds] = useState(booking.workerIds || [])
   const [status, setStatus] = useState(booking.status || 'scheduled')
@@ -28,7 +29,8 @@ export default function BookingDetailModal({ booking, onClose }) {
     setSaving(true)
     await updateBooking(booking.id, {
       notes,
-      price: price === '' ? 0 : Number(price),
+      // Only managers can change money; preserve existing values otherwise.
+      ...(canSeeMoney ? { price: price === '' ? 0 : Number(price), tip: tip === '' ? 0 : Number(tip) } : {}),
       address,
       workerIds,
       status,
@@ -65,31 +67,49 @@ export default function BookingDetailModal({ booking, onClose }) {
           <Info              label="When"   value={`${fmtDateTime(booking.start)} → ${fmtDateTime(booking.end).split('·')[1]?.trim()}`} />
         </div>
 
-        {/* Редагована ціна */}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="label !mb-0">Price</label>
-            {service && Number(price) !== service.basePrice && (
-              <button
-                onClick={() => setPrice(String(service.basePrice))}
-                className="text-xs font-medium text-amber-deep hover:underline"
-              >
-                Reset to ${service.basePrice}
-              </button>
-            )}
+        {/* Ціна + чайові — лише для owner/managers */}
+        {canSeeMoney && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="label !mb-0">Price</label>
+                {service && Number(price) !== service.basePrice && (
+                  <button
+                    onClick={() => setPrice(String(service.basePrice))}
+                    className="text-xs font-medium text-amber-deep hover:underline"
+                  >
+                    Reset to ${service.basePrice}
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400">$</span>
+                <input
+                  type="number" min="0" step="0.01"
+                  className="input pl-8"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <p className="mt-1 text-xs text-ink-400">Custom quotes, discounts, extra work.</p>
+            </div>
+            <div>
+              <label className="label">Tip</label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400">$</span>
+                <input
+                  type="number" min="0" step="0.01"
+                  className="input pl-8"
+                  value={tip}
+                  onChange={(e) => setTip(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <p className="mt-1 text-xs text-ink-400">Logged toward earnings.</p>
+            </div>
           </div>
-          <div className="relative">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400">$</span>
-            <input
-              type="number" min="0" step="0.01"
-              className="input pl-8"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
-          <p className="mt-1 text-xs text-ink-400">Adjust for custom quotes, discounts, or extra work.</p>
-        </div>
+        )}
 
         {/* Редагована адреса */}
         <div>

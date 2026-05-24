@@ -10,7 +10,7 @@ import BookingDetailModal from '../components/BookingDetailModal.jsx'
 import { fmtDayLabel, fmtMoney } from '../lib/format.js'
 
 export default function Dashboard() {
-  const { business, bookings, clients, workers } = useBusiness()
+  const { business, bookings, clients, workers, canSeeMoney } = useBusiness()
   const [selected, setSelected] = useState(null)
   const [newLeadCount, setNewLeadCount] = useState(0)
 
@@ -38,6 +38,8 @@ export default function Dashboard() {
     [bookings]
   )
   const revenue = week.reduce((acc, b) => acc + (b.price || 0), 0)
+  const tips = week.reduce((acc, b) => acc + (b.tip || 0), 0)
+  const earnings = revenue + tips
   const activeClients = new Set(week.map((b) => b.clientId)).size
 
   return (
@@ -73,7 +75,14 @@ export default function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={Briefcase} label="Jobs today"      value={today.length} />
         <Stat icon={TrendingUp} label="Jobs this week" value={week.length} />
-        <Stat icon={DollarSign} label="Booked revenue" value={fmtMoney(revenue)} />
+        {canSeeMoney && (
+          <Stat
+            icon={DollarSign}
+            label="Earnings this week"
+            value={fmtMoney(earnings)}
+            hint={tips > 0 ? `${fmtMoney(revenue)} + ${fmtMoney(tips)} tips` : null}
+          />
+        )}
         <Stat icon={Map}        label="Active clients" value={activeClients} />
       </div>
 
@@ -137,7 +146,7 @@ export default function Dashboard() {
   )
 }
 
-function Stat({ icon: Icon, label, value }) {
+function Stat({ icon: Icon, label, value, hint }) {
   return (
     <div className="card flex items-center gap-4 p-5">
       <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink-100 text-ink-600">
@@ -146,6 +155,7 @@ function Stat({ icon: Icon, label, value }) {
       <div>
         <div className="text-xs uppercase tracking-wider text-ink-400">{label}</div>
         <div className="font-display text-3xl text-ink-800">{value}</div>
+        {hint && <div className="mt-0.5 text-xs text-ink-400">{hint}</div>}
       </div>
     </div>
   )
