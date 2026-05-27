@@ -26,7 +26,6 @@ export function BusinessProvider({ children }) {
   const refresh = useCallback(async () => {
     if (!supabaseReady) { setLoading(false); return }
     if (!user) { setState(EMPTY); setLoading(false); return }
-    console.log('[refresh] starting, user.id =', user.id, 'email =', user.email)
     setLoading(true); setError(null)
     try {
       // Спершу шукаємо бізнес де я owner
@@ -39,7 +38,6 @@ export function BusinessProvider({ children }) {
           .maybeSingle()
         if (error) throw error
         biz = data
-        console.log('[refresh] owner search result:', biz ? `FOUND business ${biz.id} "${biz.name}"` : 'NOT FOUND')
       }
 
       // Якщо не owner — шукаємо через worker рядок
@@ -50,7 +48,6 @@ export function BusinessProvider({ children }) {
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle()
-        console.log('[refresh] worker search:', { myWorker, workerErr })
         if (myWorker?.business_id) {
           const { data: bizAsWorker, error: be } = await supabase
             .from('businesses')
@@ -59,7 +56,6 @@ export function BusinessProvider({ children }) {
             .maybeSingle()
           if (be) throw be
           biz = bizAsWorker
-          console.log('[refresh] business via worker:', biz ? `FOUND ${biz.id}` : 'NOT FOUND (RLS blocked?)')
         }
       }
 
@@ -112,7 +108,6 @@ export function BusinessProvider({ children }) {
   const createBusinessForUser = async ({ name, type, slug, city, phone, schedule, slotMinutes }) => {
     if (!user) throw new Error('Not signed in')
 
-    console.log('[createBusinessForUser] user.id =', user.id, 'email =', user.email)
 
     // 1. Спочатку перевірити чи у мене вже є бізнес — щоб не дублювати при race condition.
     {
@@ -121,7 +116,6 @@ export function BusinessProvider({ children }) {
         .select('*')
         .eq('owner_id', user.id)
         .maybeSingle()
-      console.log('[createBusinessForUser] existing check:', { existing, existingErr })
       if (existing) {
         // Встановлюємо state напряму
         const newBusiness = fromBusiness(existing)
@@ -163,7 +157,6 @@ export function BusinessProvider({ children }) {
       owner_id: user.id,
     }
 
-    console.log('[createBusinessForUser] INSERT payload:', payload)
 
     let biz
     const { data: insertedBiz, error: be } = await supabase.from('businesses').insert(payload).select().single()
@@ -181,7 +174,6 @@ export function BusinessProvider({ children }) {
       biz = insertedBiz
     }
 
-    console.log('[createBusinessForUser] INSERTED business:', biz)
 
     await seedDefaults(biz.id, typeDef)
 
@@ -191,7 +183,6 @@ export function BusinessProvider({ children }) {
     setState((prev) => ({ ...prev, business: newBusiness }))
     setLoading(false)
 
-    console.log('[createBusinessForUser] STATE SET with business:', newBusiness)
 
     return newBusiness
   }

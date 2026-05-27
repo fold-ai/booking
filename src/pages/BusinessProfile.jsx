@@ -6,6 +6,7 @@ import { supabase, supabaseReady } from '../supabase.js'
 import { fromBusiness, fromService, fromOffer } from '../lib/mappers.js'
 import { getBusinessType } from '../data/businessTypes.js'
 import { fmtMoney } from '../lib/format.js'
+import Seo, { SITE_URL, breadcrumb } from '../components/Seo.jsx'
 
 export default function BusinessProfile() {
   const { slug } = useParams()
@@ -48,11 +49,48 @@ export default function BusinessProfile() {
 
   const type = getBusinessType(business.type)
 
+  const prices = services.map((s) => s.basePrice).filter((n) => n > 0)
+  const priceRange = prices.length ? `$${Math.min(...prices)}–$${Math.max(...prices)}` : undefined
+  const localBusinessSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: business.name,
+    description: business.description || business.tagline || `${type.label} services from ${business.name}.`,
+    url: `${SITE_URL}/biz/${business.slug}`,
+    ...(business.heroImageUrl ? { image: business.heroImageUrl } : {}),
+    ...(business.phone ? { telephone: business.phone } : {}),
+    ...(business.email ? { email: business.email } : {}),
+    ...(business.city ? { address: { '@type': 'PostalAddress', addressLocality: business.city, addressCountry: 'US' } } : {}),
+    ...(priceRange ? { priceRange } : {}),
+    makesOffer: services.map((s) => ({
+      '@type': 'Offer',
+      itemOffered: { '@type': 'Service', name: s.name },
+      price: String(s.basePrice),
+      priceCurrency: 'USD',
+    })),
+  }
+  const metaTitle = `${business.name} — ${type.label}${business.city ? ` in ${business.city}` : ''} | Drevito`
+  const metaDesc = (business.tagline || business.description || `Book ${type.label.toLowerCase()} with ${business.name}${business.city ? ` in ${business.city}` : ''}. See services, prices, and offers, then book online.`).slice(0, 320)
+
   return (
     <Shell>
+      <Seo
+        title={metaTitle}
+        description={metaDesc}
+        path={`/biz/${business.slug}`}
+        type="profile"
+        image={business.heroImageUrl || undefined}
+        jsonLd={[
+          localBusinessSchema,
+          breadcrumb([
+            { name: 'Find a pro', path: '/discover' },
+            { name: business.name, path: `/biz/${business.slug}` },
+          ]),
+        ]}
+      />
       <div className="relative h-48 overflow-hidden rounded-2xl bg-ink-100 sm:h-80 sm:rounded-3xl">
         {business.heroImageUrl ? (
-          <img src={business.heroImageUrl} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img src={business.heroImageUrl} alt={`${business.name} — ${type.label}${business.city ? ` in ${business.city}` : ''}`} loading="lazy" decoding="async" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
         ) : (
           <div className="grid h-full w-full place-items-center text-6xl sm:text-7xl">{type.emoji}</div>
         )}
@@ -65,7 +103,7 @@ export default function BusinessProfile() {
       <header className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-end gap-3 sm:gap-4">
           <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-white bg-ink-100 text-2xl shadow sm:h-20 sm:w-20 sm:text-3xl">
-            {business.avatarUrl ? <img src={business.avatarUrl} alt="" className="h-full w-full object-cover" /> : type.emoji}
+            {business.avatarUrl ? <img src={business.avatarUrl} alt={`${business.name} logo`} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : type.emoji}
           </div>
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-amber-deep">{type.emoji} {type.label}</div>

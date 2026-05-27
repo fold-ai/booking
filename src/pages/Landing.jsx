@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import BrandMark from '../components/BrandMark.jsx'
+import Seo, { softwareSchema, orgSchema } from '../components/Seo.jsx'
 import { ArrowRight, Bot, CalendarDays, Map, Users, ShieldCheck, Sparkles } from 'lucide-react'
 
 const features = [
@@ -16,6 +17,15 @@ const verticals = ['Landscaping', 'Window cleaning', 'House cleaning', 'Pool ser
 export default function Landing() {
   return (
     <div className="min-h-screen bg-ink-50">
+      <Seo
+        title="Field Service Scheduling Software for Small Crews & Teams | Drevito"
+        description="Drevito is field service scheduling software for small crews — a shared calendar, online booking page, client CRM, and an AI dispatcher. Built for lawn care, window cleaning, pool service & cleaning. Free 14-day trial."
+        path="/for-business"
+        jsonLd={[
+          softwareSchema({ description: 'Field service scheduling software with online booking, shared calendar, client CRM, and AI dispatcher for small crews and teams.', url: 'https://drevito.com/for-business' }),
+          orgSchema(),
+        ]}
+      />
       {/* nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
@@ -150,9 +160,9 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-ink-400 sm:flex-row sm:gap-0 sm:px-6">
           <div>© {new Date().getFullYear()} Drevito</div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-ink-700">Privacy</a>
-            <a href="#" className="hover:text-ink-700">Terms</a>
-            <a href="#" className="hover:text-ink-700">Contact</a>
+            <Link to="/privacy" className="hover:text-ink-700">Privacy</Link>
+            <Link to="/terms" className="hover:text-ink-700">Terms</Link>
+            <a href="mailto:hello@drevito.com" className="hover:text-ink-700">Contact</a>
           </div>
         </div>
       </footer>

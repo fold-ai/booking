@@ -3,6 +3,8 @@ import BrandMark from '../components/BrandMark.jsx'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx'
+import AppleSignInButton from '../components/AppleSignInButton.jsx'
+import Seo from '../components/Seo.jsx'
 
 export default function Login() {
   const { signIn, supabaseReady } = useAuth()
@@ -29,8 +31,10 @@ export default function Login() {
 
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to your Drevito workspace.">
+      <Seo title="Sign in | Drevito" description="Sign in to your Drevito workspace." path="/login" noindex />
       <div className="space-y-4">
         <GoogleSignInButton label="Continue with Google" disabled={busy} />
+        <AppleSignInButton label="Continue with Apple" disabled={busy} />
 
         <div className="relative flex items-center py-1">
           <div className="flex-grow border-t border-ink-100" />

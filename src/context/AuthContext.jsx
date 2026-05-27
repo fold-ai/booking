@@ -62,8 +62,24 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  /**
+   * Логін через Apple OAuth (Supabase provider 'apple').
+   * Відкриває Apple consent → назад на redirectTo (default /app).
+   * Потребує налаштування Apple provider у Supabase dashboard.
+   */
+  const signInWithApple = async (redirectTo) => {
+    if (!supabaseReady) throw new Error('Supabase not configured.')
+    const target = redirectTo || `${window.location.origin}/app`
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: target },
+    })
+    if (error) throw error
+    return data
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut, supabaseReady }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signInWithApple, signOut, supabaseReady }}>
       {children}
     </AuthContext.Provider>
   )

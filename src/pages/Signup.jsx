@@ -6,6 +6,8 @@ import { useBusiness } from '../context/BusinessContext.jsx'
 import { BUSINESS_TYPES } from '../data/businessTypes.js'
 import { AuthShell } from './Login.jsx'
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx'
+import AppleSignInButton from '../components/AppleSignInButton.jsx'
+import Seo from '../components/Seo.jsx'
 
 /**
  * Signup wizard — 3 кроки.
@@ -89,6 +91,7 @@ export default function Signup() {
       title={['Welcome to Drevito', 'About your business', 'Working hours'][step - 1]}
       subtitle={[`Step 1 of 3 · Create your account`, 'Step 2 of 3 · Tell us about your work', 'Step 3 of 3 · Set when customers can book'][step - 1]}
     >
+      <Seo title="Create your free account | Drevito" description="Start your free 14-day Drevito trial. Set up scheduling and online booking for your field service business in minutes." path="/signup" noindex />
       <div className="space-y-4">
         <StepIndicator current={step} />
 
@@ -96,8 +99,9 @@ export default function Signup() {
         {step === 1 && (
           <>
             <GoogleSignInButton label="Continue with Google" disabled={busy} />
+            <AppleSignInButton label="Continue with Apple" disabled={busy} />
             <p className="rounded-xl bg-amber-soft/40 px-3 py-2 text-xs text-ink-600">
-              With Google, you'll skip the password step but still complete business setup.
+              With Google or Apple, you'll skip the password step but still complete business setup.
             </p>
 
             <div className="relative flex items-center py-1">

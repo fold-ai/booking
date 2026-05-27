@@ -52,6 +52,7 @@ create index if not exists offers_business_idx on public.offers(business_id);
 create table if not exists public.workers (
   id           uuid primary key default gen_random_uuid(),
   business_id  uuid not null references public.businesses(id) on delete cascade,
+  user_id      uuid references auth.users(id) on delete set null,
   name         text not null,
   role         text,
   email        text,
@@ -59,8 +60,19 @@ create table if not exists public.workers (
   color        text default '#3F3F37',
   skills       text[] not null default '{}',
   hire_date    date,
+  is_manager   boolean not null default false,
   created_at   timestamptz not null default now()
 );
+
+-- Ensure these exist on pre-existing installs (idempotent). Referenced by the
+-- ensure_owner_worker trigger, RLS policies, invitations, and the iOS app.
+-- Without user_id, business creation fails (the login-loop bug).
+alter table public.workers
+  add column if not exists user_id    uuid references auth.users(id) on delete set null,
+  add column if not exists is_manager boolean not null default false;
+
+create index if not exists workers_user_id_idx       on public.workers(user_id);
+create index if not exists workers_business_user_idx on public.workers(business_id, user_id);
 
 create table if not exists public.clients (
   id           uuid primary key default gen_random_uuid(),

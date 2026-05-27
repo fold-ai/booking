@@ -9,6 +9,10 @@ FieldbaseCrew.xcodeproj/
 xcuserdata/
 DerivedData/
 build/
+.dd/
+
+# Swift Package Manager local cache
+.spm-cache/
 
 # Swift Package Manager
 .build/

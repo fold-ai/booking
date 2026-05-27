@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /login
+Disallow: /signup
+Disallow: /join
+Disallow: /debug
+
+Sitemap: https://drevito.com/sitemap.xml

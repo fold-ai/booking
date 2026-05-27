@@ -9,6 +9,3 @@ dist-ssr
 *.log
 .idea
 .vscode
-ios/.dd/
-ios/.spm-cache/
-ios/.build/

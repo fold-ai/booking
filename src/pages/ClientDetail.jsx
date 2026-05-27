@@ -8,7 +8,7 @@ import StatusPill from '../components/StatusPill.jsx'
 export default function ClientDetail() {
   const { id } = useParams()
   const nav = useNavigate()
-  const { clients, bookings, services, updateClient, removeClient } = useBusiness()
+  const { clients, bookings, services, updateClient, removeClient, canSeeMoney } = useBusiness()
   const client = clients.find((c) => c.id === id)
   const [draft, setDraft] = useState(client)
 
@@ -46,7 +46,7 @@ export default function ClientDetail() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat label="Jobs"    value={history.length} />
-        <Stat label="Revenue" value={fmtMoney(revenue)} />
+        {canSeeMoney && <Stat label="Revenue" value={fmtMoney(revenue)} />}
         <Stat label="Since"   value={(client.createdAt || '').slice(0, 7)} />
       </div>
 
@@ -83,7 +83,9 @@ export default function ClientDetail() {
                       <div className="text-xs text-ink-400">{fmtDateTime(b.start)}</div>
                     </div>
                     <StatusPill status={b.status} />
-                    <div className="w-16 text-right text-sm font-semibold text-ink-700">{fmtMoney(b.price)}</div>
+                    {canSeeMoney && (
+                      <div className="w-16 text-right text-sm font-semibold text-ink-700">{fmtMoney((b.price || 0) + (b.tip || 0))}</div>
+                    )}
                   </div>
                 )
               })}

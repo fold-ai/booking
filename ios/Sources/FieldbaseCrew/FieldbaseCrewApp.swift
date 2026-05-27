@@ -1,4 +1,5 @@
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct FieldbaseCrewApp: App {
@@ -10,6 +11,9 @@ struct FieldbaseCrewApp: App {
         .environment(appState)
         .preferredColorScheme(.light)
         .tint(Theme.amber)
+        .onOpenURL { url in
+          GIDSignIn.sharedInstance.handle(url)
+        }
     }
   }
 }
@@ -37,6 +41,7 @@ struct RootView: View {
       }
     }
     .animation(.easeInOut(duration: 0.2), value: state.user?.id)
+    .task { await state.revalidateAppleCredentialIfNeeded() }
   }
 
   private var loadingScreen: some View {

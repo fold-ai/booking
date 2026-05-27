@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { addMinutes, format, parseISO } from 'date-fns'
+import { addMinutes, format, parseISO, isSameDay } from 'date-fns'
 import { ArrowRight, Bot, CheckCircle2, Send, Sparkles, User } from 'lucide-react'
 import { supabase, supabaseReady } from '../supabase.js'
 import { fromBusiness, fromService, fromBooking, toClient, toBooking } from '../lib/mappers.js'
 import { fmtMoney } from '../lib/format.js'
 import { computeAvailableSlots, groupSlotsByDay, formatSlotTime, formatSlotDay } from '../lib/slots.js'
 import { validateName, validatePhone, validateAddress, validateEmail, formatPhone, displayPhone } from '../lib/validation.js'
+import Seo from '../components/Seo.jsx'
 
 export default function PublicBooking() {
   const { slug } = useParams()
@@ -66,6 +67,31 @@ export default function PublicBooking() {
   }, [picked.service, bookings, timeOff, business])
 
   const slotsByDay = useMemo(() => groupSlotsByDay(slots), [slots])
+
+  // Service-agnostic candidate slots for the AI chat (before a service is picked).
+  // Uses the shortest active service as the most permissive grid; the AI's chosen
+  // slot is later re-validated against the actual selected service's availability.
+  const aiSlots = useMemo(() => {
+    if (!business || services.length === 0) return []
+    const minDur = Math.min(...services.map((s) => s.durationMin || 60))
+    const minBuf = Math.min(...services.map((s) => s.bufferMin ?? 15))
+    return computeAvailableSlots(
+      { schedule: business.schedule, slot_minutes: business.slotMinutes },
+      { duration_min: minDur, buffer_min: minBuf },
+      bookings,
+      timeOff,
+      { days: 14, minLeadHours: 2 }
+    )
+  }, [business, services, bookings, timeOff])
+
+  // Recompute real availability for a specific service (used to validate AI picks).
+  const slotsForService = (service) => computeAvailableSlots(
+    { schedule: business.schedule, slot_minutes: business.slotMinutes },
+    { duration_min: service.durationMin, buffer_min: service.bufferMin },
+    bookings,
+    timeOff,
+    { days: 14, minLeadHours: 2 }
+  )
 
   // Validation — викликається перед submit і onBlur
   const validateAll = () => {
@@ -132,9 +158,18 @@ export default function PublicBooking() {
     return <Shell business={{ name: 'Error' }}><div className="text-center text-rose-700">{loadError}</div></Shell>
   }
 
+  const bookingSeo = (
+    <Seo
+      title={`Book ${business.name} Online${business.city ? ` — ${business.city}` : ''} | Drevito`}
+      description={`Book ${business.name} online. Pick a service and an available time, and get instant confirmation.`}
+      path={`/book/${business.slug || slug}`}
+    />
+  )
+
   if (done) {
     return (
       <Shell business={business}>
+        {bookingSeo}
         <div className="text-center">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-moss text-white"><CheckCircle2 size={28} /></div>
           <h2 className="mt-4 font-display text-4xl text-ink-800">You're booked.</h2>
@@ -147,6 +182,7 @@ export default function PublicBooking() {
 
   return (
     <Shell business={business}>
+      {bookingSeo}
       <div className="mb-6 flex gap-2">
         <ModeTab active={mode === 'quick'} onClick={() => setMode('quick')} icon={Sparkles}>Quick book</ModeTab>
         <ModeTab active={mode === 'ai'}    onClick={() => setMode('ai')}    icon={Bot}>Chat with AI</ModeTab>
@@ -156,12 +192,36 @@ export default function PublicBooking() {
         <AIChat
           onProposal={(p) => {
             const service = services.find((s) => s.id === p.serviceId) || services[0]
-            setPicked((cur) => ({ ...cur, service, slot: p.slotISO || cur.slot, notes: p.notes || cur.notes }))
+            if (!service) { setMode('quick'); setStep('service'); return }
+
+            // Validate the AI's chosen time against the real availability for THIS
+            // service. Never silently book a slot that isn't actually open.
+            let chosenISO = null
+            if (p.slotISO) {
+              const want = new Date(p.slotISO)
+              if (!isNaN(want)) {
+                const real = slotsForService(service)
+                const exact = real.find((s) => s.start.getTime() === want.getTime())
+                if (exact) {
+                  chosenISO = exact.start.toISOString()
+                } else {
+                  // Snap to the nearest open slot on the same day the customer asked for.
+                  const sameDay = real
+                    .filter((s) => isSameDay(s.start, want))
+                    .sort((a, b) => Math.abs(a.start - want) - Math.abs(b.start - want))
+                  if (sameDay.length) chosenISO = sameDay[0].start.toISOString()
+                }
+              }
+            }
+
+            setPicked((cur) => ({ ...cur, service, slot: chosenISO, notes: p.notes || cur.notes }))
             setMode('quick')
-            setStep(p.slotISO ? 'details' : 'time')
+            // If we couldn't land on a real slot, send them to the time picker
+            // (pre-filtered to this service) instead of booking a wrong date.
+            setStep(chosenISO ? 'details' : 'time')
           }}
           services={services}
-          slots={slots}
+          slots={aiSlots}
           business={business}
         />
       ) : (
@@ -374,9 +434,16 @@ function AIChat({ services, slots, business, onProposal }) {
           messages: next,
           context: {
             business: { name: business.name, type: business.type, city: business.city },
-            services: services.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, basePrice: s.basePrice })),
-            availableSlots: slots.slice(0, 8).map((s) => s.start.toISOString()),
+            services: services.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, basePrice: s.basePrice, priceType: s.priceType })),
+            // Labeled, business-local slots so the AI can match "Friday morning"
+            // to a real opening. It MUST return an iso from this list.
+            availableSlots: slots.slice(0, 40).map((s) => ({
+              iso: s.start.toISOString(),
+              label: `${formatSlotDay(s.start)} ${formatSlotTime(s.start)}`,
+            })),
             now: new Date().toISOString(),
+            today: formatSlotDay(new Date()),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           },
         }),
       })

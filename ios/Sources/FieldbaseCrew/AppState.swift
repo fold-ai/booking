@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Supabase
+import AuthenticationServices
 
 struct CurrentUser: Equatable {
   let id: UUID
@@ -66,8 +67,50 @@ final class AppState {
   }
 
   func signOut() {
+    UserDefaults.standard.removeObject(forKey: "appleUserID")
     Task {
       try? await auth.signOut()
+    }
+  }
+
+  /// Exchange an Apple identity token (from ASAuthorizationController) for a
+  /// Supabase session. The auth-state listener then loads role + data.
+  /// `appleUserID` is the stable Apple `sub`; we store it to re-check the
+  /// credential state on future launches.
+  func signInWithApple(idToken: String, nonce: String, appleUserID: String?) async {
+    isLoading = true; defer { isLoading = false }
+    do {
+      try await auth.signInWithApple(idToken: idToken, nonce: nonce)
+      if let appleUserID { UserDefaults.standard.set(appleUserID, forKey: "appleUserID") }
+      errorMessage = nil
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  /// Exchange a Google ID token + access token (from the GoogleSignIn SDK) for
+  /// a Supabase session. The auth-state listener then loads role + data.
+  func signInWithGoogle(idToken: String, accessToken: String) async {
+    isLoading = true; defer { isLoading = false }
+    do {
+      try await auth.signInWithGoogle(idToken: idToken, accessToken: accessToken)
+      errorMessage = nil
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  /// On launch, if the user signed in with Apple, verify the credential is
+  /// still authorized. If they revoked access in iOS Settings, sign out.
+  func revalidateAppleCredentialIfNeeded() async {
+    guard let appleUserID = UserDefaults.standard.string(forKey: "appleUserID") else { return }
+    let provider = ASAuthorizationAppleIDProvider()
+    let state: ASAuthorizationAppleIDProvider.CredentialState = await withCheckedContinuation { cont in
+      provider.getCredentialState(forUserID: appleUserID) { state, _ in cont.resume(returning: state) }
+    }
+    if state == .revoked || state == .notFound {
+      UserDefaults.standard.removeObject(forKey: "appleUserID")
+      signOut()
     }
   }
 

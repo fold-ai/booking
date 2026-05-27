@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import BrandMark from '../components/BrandMark.jsx'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, MapPin, Search, Sparkles } from 'lucide-react'
 import { supabase, supabaseReady } from '../supabase.js'
 import { fromBusiness, fromService, fromOffer } from '../lib/mappers.js'
 import { BUSINESS_TYPES, getBusinessType } from '../data/businessTypes.js'
 import { fmtMoney } from '../lib/format.js'
+import Seo, { orgSchema, breadcrumb } from '../components/Seo.jsx'
 
 const ALL = 'all'
 
@@ -83,8 +84,30 @@ export default function Discover() {
     })
   }, [businesses, type, city, q])
 
+  const pathname = useLocation().pathname
+
   return (
     <div className="min-h-screen bg-ink-50">
+      <Seo
+        title="Find Local Field Service Pros — Lawn, Window, Pool & Cleaning | Drevito"
+        description="Browse and book trusted local field service businesses — lawn care, window cleaning, pool service, and house cleaning. Filter by trade and city, then book online in two clicks."
+        path={pathname === '/discover' ? '/discover' : '/'}
+        jsonLd={[
+          orgSchema(),
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Drevito',
+            url: 'https://drevito.com',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: 'https://drevito.com/discover?q={search_term_string}',
+              'query-input': 'required name=search_term_string',
+            },
+          },
+          breadcrumb([{ name: 'Find a pro', path: pathname === '/discover' ? '/discover' : '/' }]),
+        ]}
+      />
       <Nav />
       <Hero q={q} setQ={setQ} city={city} setCity={setCity} cities={cities} />
 
@@ -225,7 +248,9 @@ function BizCard({ business, services, offers }) {
         {business.heroImageUrl ? (
           <img
             src={business.heroImageUrl}
-            alt=""
+            alt={`${business.name} — ${type.label}${business.city ? ` in ${business.city}` : ''}`}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition group-hover:scale-105"
             onError={(e) => { e.currentTarget.style.display = 'none' }}
           />
@@ -266,7 +291,11 @@ function Footer() {
     <footer className="border-t border-ink-100 bg-white py-8 sm:py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 text-sm text-ink-400 sm:flex-row sm:gap-0 sm:px-6">
         <div>© {new Date().getFullYear()} Drevito</div>
-        <Link to="/signup" className="hover:text-ink-700">List your business →</Link>
+        <nav className="flex flex-wrap items-center gap-4">
+          <Link to="/privacy" className="hover:text-ink-700">Privacy</Link>
+          <Link to="/terms" className="hover:text-ink-700">Terms</Link>
+          <Link to="/signup" className="hover:text-ink-700">List your business →</Link>
+        </nav>
       </div>
     </footer>
   )

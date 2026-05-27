@@ -7,7 +7,7 @@ import Modal from '../components/Modal.jsx'
 import { initials } from '../lib/format.js'
 
 export default function Clients() {
-  const { clients, bookings, addClient } = useBusiness()
+  const { clients, bookings, addClient, canSeeMoney } = useBusiness()
   const [q, setQ] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -59,7 +59,7 @@ export default function Clients() {
               </div>
               <div className="text-right text-xs text-ink-500">
                 <div className="font-semibold text-ink-700">{c.jobs} jobs</div>
-                <div>${c.revenue} total</div>
+                {canSeeMoney && <div>${c.revenue} total</div>}
               </div>
             </Link>
           ))}
