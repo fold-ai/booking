@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Calendar, ClipboardList, Users, UserCircle2, Wrench, Settings as Cog, Sparkles, Megaphone, Inbox as InboxIcon } from 'lucide-react'
+import { LayoutDashboard, Calendar, ClipboardList, Users, UserCircle2, Wrench, Settings as Cog, Sparkles, Megaphone, Inbox as InboxIcon, Wallet } from 'lucide-react'
 import { useBusiness } from '../context/BusinessContext.jsx'
 import { supabase, supabaseReady } from '../supabase.js'
 import BrandMark from './BrandMark.jsx'
@@ -12,14 +12,16 @@ const items = [
   { to: '/app/bookings', label: 'Bookings',       icon: ClipboardList },
   { to: '/app/clients',  label: 'Clients',        icon: Users },
   { to: '/app/workers',  label: 'Workers',        icon: UserCircle2 },
+  { to: '/app/payroll',  label: 'Payroll',        icon: Wallet, managerOnly: true },
   { to: '/app/services', label: 'Services',       icon: Wrench },
   { to: '/app/profile',  label: 'Public profile', icon: Megaphone },
   { to: '/app/settings', label: 'Settings',       icon: Cog },
 ]
 
 export default function Sidebar() {
-  const { business } = useBusiness()
+  const { business, isManager } = useBusiness()
   const newLeads = useNewLeadCount(business?.id)
+  const navItems = items.filter((it) => !it.managerOnly || isManager)
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col bg-ink-800 text-ink-100 md:flex">
@@ -32,7 +34,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-2">
-        {items.map(({ to, label, icon: Icon, end, key }) => (
+        {navItems.map(({ to, label, icon: Icon, end, key }) => (
           <NavLink
             key={to}
             to={to}

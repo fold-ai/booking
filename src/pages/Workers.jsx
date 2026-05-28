@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Plus, Mail, Phone, Trash2, Send, Copy, Check, Shield, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Mail, Phone, Trash2, Send, Copy, Check, Shield, X, Wallet } from 'lucide-react'
 import { useBusiness } from '../context/BusinessContext.jsx'
 import { supabase } from '../supabase.js'
 import EmptyState from '../components/EmptyState.jsx'
 import Modal from '../components/Modal.jsx'
 import WorkerAvatar from '../components/WorkerAvatar.jsx'
+import { periodRange, workerSummary } from '../lib/payroll.js'
+import { fmtHours, fmtPay } from '../lib/format.js'
 
 const COLORS = ['#7BB661', '#3F6B4A', '#1F3A26', '#4F8A3C', '#B97A1D', '#7C2D12', '#0F766E']
 
 export default function Workers() {
-  const { business, workers, bookings, addWorker, removeWorker, updateWorker } = useBusiness()
+  const { business, workers, bookings, timeEntries, payouts, canSeeMoney, addWorker, removeWorker, updateWorker } = useBusiness()
+  const thisWeek = periodRange('this_week')
   const [adding, setAdding] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [createdInvite, setCreatedInvite] = useState(null)
@@ -131,6 +135,20 @@ export default function Workers() {
                     <span>Upcoming</span>
                     <span className="font-semibold text-ink-700">{upcoming} jobs</span>
                   </div>
+                  {canSeeMoney && (() => {
+                    const s = workerSummary({ worker: w, timeEntries, payouts, start: thisWeek.start, end: thisWeek.end })
+                    return (
+                      <Link
+                        to={`/app/payroll/${w.id}`}
+                        className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-700 hover:bg-ink-100"
+                      >
+                        <span className="inline-flex items-center gap-1.5"><Wallet size={12} /> This week</span>
+                        <span className="font-semibold text-ink-700">
+                          {fmtHours(s.hours)} · {fmtPay(s.earned)}
+                        </span>
+                      </Link>
+                    )
+                  })()}
                   {!isOwner && (
                     <button
                       onClick={() => toggleManager(w)}
@@ -334,7 +352,7 @@ function AddWorker({ onClose, onSave, existingColors }) {
   const [form, setForm] = useState({
     name: '', role: 'Crew', email: '', phone: '',
     color: COLORS.find((c) => !existingColors.includes(c)) || COLORS[0],
-    skills: '',
+    skills: '', hourlyRate: '',
   })
   return (
     <Modal
@@ -345,7 +363,11 @@ function AddWorker({ onClose, onSave, existingColors }) {
         <>
           <button onClick={onClose} className="btn-ghost">Cancel</button>
           <button
-            onClick={() => onSave({ ...form, skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean) })}
+            onClick={() => onSave({
+              ...form,
+              skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean),
+              hourlyRate: form.hourlyRate === '' ? null : Math.round(Number(form.hourlyRate) * 100) / 100,
+            })}
             disabled={!form.name}
             className="btn-accent"
           >
@@ -360,6 +382,7 @@ function AddWorker({ onClose, onSave, existingColors }) {
           <div><label className="label">Role</label><input className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>
           <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
           <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          <div><label className="label">Hourly rate ($)</label><input className="input" type="number" min="0" step="0.01" placeholder="25.00" value={form.hourlyRate} onChange={(e) => setForm({ ...form, hourlyRate: e.target.value })} /></div>
         </div>
         <div>
           <label className="label">Calendar color</label>

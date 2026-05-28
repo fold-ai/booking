@@ -29,6 +29,8 @@ const Settings = lazy(() => import('./pages/Settings.jsx'))
 const Inbox = lazy(() => import('./pages/Inbox.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const JoinPage = lazy(() => import('./pages/JoinPage.jsx'))
+const Payroll = lazy(() => import('./pages/Payroll.jsx'))
+const PayrollWorker = lazy(() => import('./pages/PayrollWorker.jsx'))
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -71,6 +73,8 @@ export default function App() {
           <Route path="/app/calendar" element={<Calendar />} />
           <Route path="/app/bookings" element={<Bookings />} />
           <Route path="/app/workers" element={<Workers />} />
+          <Route path="/app/payroll" element={<Payroll />} />
+          <Route path="/app/payroll/:workerId" element={<PayrollWorker />} />
           <Route path="/app/clients" element={<Clients />} />
           <Route path="/app/clients/:id" element={<ClientDetail />} />
           <Route path="/app/services" element={<Services />} />

@@ -9,11 +9,13 @@ import {
   fromService, toService,
   fromBooking, toBooking,
   fromOffer, toOffer,
+  fromTimeEntry, toTimeEntry,
+  fromPayout, toPayout,
 } from '../lib/mappers.js'
 
 const BusinessContext = createContext(null)
 
-const EMPTY = { business: null, workers: [], clients: [], services: [], bookings: [], offers: [] }
+const EMPTY = { business: null, workers: [], clients: [], services: [], bookings: [], offers: [], timeEntries: [], payouts: [] }
 
 export function BusinessProvider({ children }) {
   const { user } = useAuth()
@@ -80,6 +82,21 @@ export function BusinessProvider({ children }) {
       if (s.error) throw s.error
       if (b.error) throw b.error
       if (o.error) throw o.error
+
+      // Payroll (v08) — loaded resiliently so the app still works if the
+      // migration hasn't been applied yet (missing tables → empty arrays).
+      let timeEntries = [], payouts = []
+      try {
+        const [te, po] = await Promise.all([
+          supabase.from('time_entries').select('*').eq('business_id', bid).order('entry_date', { ascending: false }),
+          supabase.from('payouts').select('*').eq('business_id', bid).order('paid_on', { ascending: false }),
+        ])
+        if (!te.error) timeEntries = (te.data || []).map(fromTimeEntry)
+        if (!po.error) payouts = (po.data || []).map(fromPayout)
+      } catch {
+        // v08 not applied yet — leave payroll empty.
+      }
+
       setState({
         business:  fromBusiness(biz),
         workers:   (w.data || []).map(fromWorker),
@@ -87,6 +104,8 @@ export function BusinessProvider({ children }) {
         services:  (s.data || []).map(fromService),
         bookings:  (b.data || []).map(fromBooking),
         offers:    (o.data || []).map(fromOffer),
+        timeEntries,
+        payouts,
       })
     } catch (e) {
       console.error('[refresh] ERROR:', e)
@@ -283,6 +302,42 @@ export function BusinessProvider({ children }) {
     await refresh()
   }
 
+  const addTimeEntry = async (e) => {
+    if (!businessId) return
+    const { error } = await supabase.from('time_entries').insert(toTimeEntry(e, businessId))
+    if (error) throw error
+    await refresh()
+  }
+  const updateTimeEntry = async (id, patch) => {
+    const merged = { ...state.timeEntries.find((x) => x.id === id), ...patch }
+    const { error } = await supabase.from('time_entries').update(toTimeEntry(merged, businessId)).eq('id', id)
+    if (error) throw error
+    await refresh()
+  }
+  const removeTimeEntry = async (id) => {
+    const { error } = await supabase.from('time_entries').delete().eq('id', id)
+    if (error) throw error
+    await refresh()
+  }
+
+  const addPayout = async (p) => {
+    if (!businessId) return
+    const { error } = await supabase.from('payouts').insert(toPayout(p, businessId))
+    if (error) throw error
+    await refresh()
+  }
+  const updatePayout = async (id, patch) => {
+    const merged = { ...state.payouts.find((x) => x.id === id), ...patch }
+    const { error } = await supabase.from('payouts').update(toPayout(merged, businessId)).eq('id', id)
+    if (error) throw error
+    await refresh()
+  }
+  const removePayout = async (id) => {
+    const { error } = await supabase.from('payouts').delete().eq('id', id)
+    if (error) throw error
+    await refresh()
+  }
+
   const addOffer = async (o) => {
     if (!businessId) return
     const { error } = await supabase.from('offers').insert(toOffer(o, businessId))
@@ -323,6 +378,8 @@ export function BusinessProvider({ children }) {
     addService, updateService, removeService,
     addBooking, updateBooking, removeBooking,
     addOffer, updateOffer, removeOffer,
+    addTimeEntry, updateTimeEntry, removeTimeEntry,
+    addPayout, updatePayout, removePayout,
     businessTypes: BUSINESS_TYPES,
   }), [state, loading, error, refresh, isOwner, isManager, canSeeMoney])
 

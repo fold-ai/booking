@@ -22,6 +22,7 @@ export const fromBusiness = (r) => r && ({
   instagram: r.instagram ?? '',
   isPublic: r.is_public ?? true,
   acceptingBookings: r.accepting_bookings ?? true,
+  timezone: r.timezone ?? 'America/New_York',
 })
 
 export const toBusiness = (b) => ({
@@ -44,6 +45,7 @@ export const toBusiness = (b) => ({
   instagram: b.instagram ?? null,
   is_public: b.isPublic ?? true,
   accepting_bookings: b.acceptingBookings ?? true,
+  timezone: b.timezone ?? 'America/New_York',
 })
 
 export const fromOffer = (r) => ({
@@ -80,6 +82,8 @@ export const fromWorker = (r) => ({
   skills: r.skills ?? [],
   hireDate: r.hire_date,
   isManager: r.is_manager ?? false,
+  hourlyRate: r.hourly_rate == null ? null : Number(r.hourly_rate),
+  payType: r.pay_type ?? 'hourly',
 })
 
 export const toWorker = (w, businessId) => ({
@@ -92,6 +96,8 @@ export const toWorker = (w, businessId) => ({
   skills: w.skills ?? [],
   hire_date: w.hireDate ?? null,
   is_manager: w.isManager ?? false,
+  hourly_rate: w.hourlyRate ?? null,
+  pay_type: w.payType ?? 'hourly',
 })
 
 export const fromClient = (r) => ({
@@ -167,4 +173,50 @@ export const toBooking = (b, businessId) => ({
   tip: b.tip ?? 0,
   notes: b.notes ?? null,
   status: b.status ?? 'scheduled',
+})
+
+export const fromTimeEntry = (r) => ({
+  id: r.id,
+  businessId: r.business_id,
+  workerId: r.worker_id,
+  bookingId: r.booking_id,
+  date: r.entry_date,        // 'YYYY-MM-DD'
+  hours: Number(r.hours ?? 0),
+  notes: r.notes ?? '',
+  source: r.source ?? 'manual',  // 'booking' | 'manual'
+  createdAt: r.created_at,
+})
+
+export const toTimeEntry = (e, businessId) => ({
+  business_id: businessId,
+  worker_id: e.workerId,
+  booking_id: e.bookingId ?? null,
+  entry_date: e.date,
+  hours: e.hours ?? 0,
+  notes: e.notes ?? null,
+  source: e.source ?? 'manual',
+})
+
+export const fromPayout = (r) => ({
+  id: r.id,
+  businessId: r.business_id,
+  workerId: r.worker_id,
+  amount: Number(r.amount ?? 0),
+  paidOn: r.paid_on,         // 'YYYY-MM-DD'
+  method: r.method ?? 'other',
+  notes: r.notes ?? '',
+  periodStart: r.period_start,
+  periodEnd: r.period_end,
+  createdAt: r.created_at,
+})
+
+export const toPayout = (p, businessId) => ({
+  business_id: businessId,
+  worker_id: p.workerId,
+  amount: p.amount ?? 0,
+  paid_on: p.paidOn,
+  method: p.method ?? 'other',
+  notes: p.notes ?? null,
+  period_start: p.periodStart ?? null,
+  period_end: p.periodEnd ?? null,
 })
